@@ -5,11 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Circet DartMasters</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- CSS INTÉGRÉ -->
+  <style>
+    :root {
+      --primary: #1a2a3a; --secondary: #0d1b2a; --accent: #ff6b35; --accent-hover: #ff8555;
+      --text: #e0e1dd; --text-muted: #778da9; --success: #2d6a4f; --danger: #9d0208;
+      --card-bg: #1b263b; --border: #415a77; --bg-light: rgba(255, 107, 53, 0.1);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Roboto', sans-serif; background: var(--secondary); color: var(--text); line-height: 1.6; }
+    .app-container { min-height: 100vh; display: flex; flex-direction: column; }
+    .site-header { background: var(--primary); padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 100; }
+    .site-header h1 { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 2rem; color: var(--accent); margin-bottom: 1rem; }
+    .main-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .nav-btn { background: transparent; border: 2px solid var(--accent); color: var(--accent); padding: 0.6rem 1.5rem; border-radius: 25px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; }
+    .nav-btn:hover, .nav-btn.active { background: var(--accent); color: var(--primary); transform: translateY(-2px); }
+    .main-content { flex: 1; padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 1.8rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); border: 1px solid var(--border); }
+    .card h2 { font-family: 'Montserrat', sans-serif; margin-bottom: 1rem; color: var(--accent); }
+    .hero-card { background: linear-gradient(135deg, var(--primary), var(--card-bg)); border-radius: 15px; padding: 3rem; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 1px solid var(--accent); margin-top: 2rem; }
+    .hero-card h2 { font-size: 2.4rem; margin-bottom: 1rem; }
+    .hero-card p { font-size: 1.2rem; color: var(--text-muted); }
+    .quick-stats { display: flex; justify-content: center; gap: 2rem; margin-top: 2rem; flex-wrap: wrap; }
+    .stat-item { background: var(--card-bg); padding: 1.5rem; border-radius: 10px; border: 1px solid var(--border); min-width: 120px; }
+    .stat-item strong { color: var(--accent); font-size: 2rem; font-family: 'Montserrat', sans-serif; }
+    input, select { background: var(--primary); border: 1px solid var(--border); color: var(--text); padding: 0.8rem; border-radius: 8px; font-size: 1rem; flex: 1; min-width: 150px; }
+    button { background: var(--accent); color: var(--primary); border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; white-space: nowrap; }
+    button:hover { background: #ff8555; transform: translateY(-2px); }
+    .btn-success { background: var(--success); } .btn-danger { background: var(--danger); } .btn-secondary { background: var(--text-muted); color: var(--primary); }
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1000; }
+    .modal-overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
+    .modal-content { position: relative; background: var(--card-bg); margin: 10% auto; padding: 2rem; width: 90%; max-width: 500px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .loading { text-align: center; padding: 2rem; color: var(--text-muted); font-style: italic; }
+    .no-data { text-align: center; padding: 2rem; color: var(--text-muted); font-style: italic; }
+    .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .player-card { background: var(--primary); padding: 1rem; border-radius: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .match-item { background: var(--primary); padding: 1rem; margin-bottom: 0.5rem; border-radius: 8px; border-left: 4px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
+    .match-info { flex: 1; }
+    .match-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .delete-match-btn { background: var(--danger); color: white; padding: 0.4rem 0.8rem; font-size: 0.9rem; border-radius: 6px; }
+    .delete-match-btn:hover { background: #b0050a; transform: none; }
+    .site-footer { background: var(--primary); text-align: center; padding: 1rem; color: var(--text-muted); border-top: 1px solid var(--border); }
+    @media (max-width: 768px) { .main-content { padding: 1.5rem; } .site-header { padding: 1.5rem; } .site-header h1 { font-size: 1.8rem; } .match-form { flex-direction: column; } .quick-stats { flex-direction: column; gap: 1rem; } }
+  </style>
 </head>
 <body>
   <div class="app-container">
-    <!-- Header -->
     <header class="site-header">
       <h1>🎯 Circet DartMasters</h1>
       <nav class="main-nav">
@@ -20,96 +65,94 @@
       </nav>
     </header>
 
-    <!-- Main Content -->
     <main class="main-content">
-      <!-- Page Accueil -->
       <section id="home-page" class="page active">
         <div class="hero-card">
           <h2>Bienvenue à la Ligue Interne Flechettes</h2>
           <p>Gérez vos joueurs, matchs et classements ELO en temps réel</p>
-          <div class="quick-stats" id="quickStats"></div>
+          <div class="quick-stats" id="quickStats">
+            <div class="loading">Chargement...</div>
+          </div>
         </div>
       </section>
 
-      <!-- Page Classement -->
       <section id="ranking-page" class="page">
         <div class="card">
           <h2>🏆 Classement ELO</h2>
-          <div id="rankingTable" class="table-container"></div>
+          <div id="rankingTable" class="table-container">
+            <div class="loading">En attente...</div>
+          </div>
         </div>
       </section>
 
-      <!-- Page Matchs -->
       <section id="matches-page" class="page">
         <div class="card">
           <h2>➕ Ajouter un match</h2>
-          <div class="match-form">
-            <select id="player1"></select>
-            <input type="text" id="matchScore" placeholder="Format: 2-0 (vainqueur J1)">
-            <select id="player2"></select>
-            <button onclick="addMatch()" class="btn-primary">Enregistrer</button>
+          <div class="match-form" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <select id="player1" style="flex: 1;"><option value="">-- Joueur 1 --</option></select>
+            <select id="player2" style="flex: 1;"><option value="">-- Joueur 2 --</option></select>
+            <input type="text" id="matchScore" placeholder="Ex: 2-0-p1" style="flex: 1;">
+            <button onclick="openAddMatchModal()" class="btn-primary">Enregistrer</button>
           </div>
         </div>
-
         <div class="card">
           <h2>📜 Historique des matchs</h2>
-          <div class="match-history" id="matchHistory"></div>
-          <button onclick="deleteLastMatch()" class="btn-danger">Supprimer le dernier match</button>
+          <div class="match-history" id="matchHistory">
+            <div class="loading">En attente...</div>
+          </div>
+          <button onclick="deleteLastMatch()" class="btn-danger" style="margin-top: 1rem;">Supprimer le dernier match</button>
         </div>
       </section>
 
-      <!-- Page Joueurs -->
       <section id="players-page" class="page">
         <div class="card">
           <h2>👤 Gestion des joueurs</h2>
-          <button onclick="openAddPlayerModal()" class="btn-success">+ Ajouter Joueur</button>
-          <div class="players-grid" id="playersGrid"></div>
-        </div>
-
-        <div class="card">
-          <h2>📊 Statistiques individuelles</h2>
-          <select id="playerStatsSelect" onchange="showPlayerStats()">
-            <option value="">Choisir un joueur</option>
-          </select>
-          <div id="playerStats" class="player-stats"></div>
+          <div style="margin-bottom: 1rem;">
+            <button onclick="openAddPlayerModal()" class="btn-success">+ Ajouter Joueur</button>
+            <button onclick="recalculateAllStats()" class="btn-danger" style="margin-left: 1rem;">🔄 Recalculer toutes les stats</button>
+          </div>
+          <div class="players-grid" id="playersGrid">
+            <div class="loading">En attente...</div>
+          </div>
         </div>
       </section>
     </main>
 
-    <!-- Footer -->
     <footer class="site-footer">
       <p>© 2024 Circet DartMasters - Circet</p>
     </footer>
   </div>
 
-  <!-- Modals -->
+  <!-- MODALS -->
   <div id="addPlayerModal" class="modal">
     <div class="modal-overlay" onclick="closeAddPlayerModal()"></div>
     <div class="modal-content">
       <h3>Ajouter un joueur</h3>
       <input type="text" id="playerName" placeholder="Nom du joueur" maxlength="30">
-      <div class="modal-actions">
+      <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
         <button onclick="addPlayer()" class="btn-success">Ajouter</button>
         <button onclick="closeAddPlayerModal()" class="btn-secondary">Annuler</button>
       </div>
     </div>
   </div>
 
-  <div id="addMatchModal" class="modal" style="display:none;">
+  <div id="addMatchModal" class="modal">
     <div class="modal-overlay" onclick="closeAddMatchModal()"></div>
     <div class="modal-content">
-      <h3>Confirmation</h3>
+      <h3>Confirmation du match</h3>
       <p id="matchConfirmText"></p>
-      <div class="modal-actions">
+      <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
         <button onclick="confirmAddMatch()" class="btn-primary">Confirmer</button>
         <button onclick="closeAddMatchModal()" class="btn-secondary">Annuler</button>
       </div>
     </div>
   </div>
 
-  <!-- Firebase -->
+  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  
+  <!-- APP JS -->
   <script src="js/app.js"></script>
 </body>
 </html>
