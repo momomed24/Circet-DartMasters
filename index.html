@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Circet DartMasters</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="logo-wrap" aria-hidden="true">
+          <svg class="logo" width="48" height="48" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#e6eefb"/>
+                <stop offset="1" stop-color="#bcd3f7"/>
+              </linearGradient>
+            </defs>
+            <circle cx="32" cy="32" r="30" fill="url(#g1)" stroke="#9fb7d9" stroke-width="1"/>
+            <g transform="translate(12,10)">
+              <path d="M16 4 L22 0 L26 6 L20 10 Z" fill="#9fb7d9" />
+              <path d="M16 4 L12 14 L6 12 L10 6 Z" fill="#dfe9f5" />
+              <circle cx="10" cy="10" r="6" fill="#0057b8"/>
+            </g>
+          </svg>
+        </div>
+        <div class="title-wrap">
+          <div id="site-title" class="site-title">Circet DartMasters</div>
+          <div class="site-sub">Ligue interne • Fléchettes</div>
+        </div>
+      </div>
+
+      <nav class="main-nav" aria-label="Navigation principale">
+        <button class="nav-link active" data-page="accueil">Accueil</button>
+        <button class="nav-link" data-page="classement">Classement</button>
+        <button class="nav-link" data-page="matchs">Matchs</button>
+        <button class="nav-link" data-page="joueurs">Joueurs</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="page-accueil" class="page active">
+      <div class="hero card">
+        <h1 class="hero-title">Bienvenue — Circet DartMasters</h1>
+        <p class="hero-sub">Suivez la ligue interne, enregistrez vos matchs et consultez le classement centralisé.</p>
+      </div>
+    </section>
+
+    <section id="page-classement" class="page">
+      <div class="card">
+        <h2>🏆 Classement Général</h2>
+        <div class="table-wrap">
+          <table id="classement-table" class="table">
+            <thead><tr><th>Joueur</th><th>Matchs</th><th>Victoires</th><th>Défaites</th><th>Ratio</th><th>Elo</th></tr></thead>
+            <tbody id="classement-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-matchs" class="page">
+      <div class="card">
+        <h2>➕ Ajouter un match</h2>
+        <form id="match-form" class="form-grid" autocomplete="off">
+          <div class="field"><label for="joueur1">Joueur 1</label><select id="joueur1" required></select></div>
+          <div class="field"><label for="score1">Score J1</label><input id="score1" type="number" min="0" required></div>
+          <div class="field"><label for="joueur2">Joueur 2</label><select id="joueur2" required></select></div>
+          <div class="field"><label for="score2">Score J2</label><input id="score2" type="number" min="0" required></div>
+          <div class="actions"><button type="submit" class="btn">Enregistrer</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>📋 Historique des matchs</h2>
+        <div class="table-wrap">
+          <table class="table"><thead><tr><th>J1</th><th>Score</th><th>J2</th><th>Score</th><th>Gagnant</th><th>Action</th></tr></thead>
+            <tbody id="matchs-body"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <section id="page-joueurs" class="page">
+      <div class="card">
+        <h2>👤 Statistiques individuelles</h2>
+        <div class="field"><label for="joueur-select">Sélectionner</label><select id="joueur-select"><option value="">— Choisir —</option></select></div>
+        <div id="joueur-stats" class="hidden stats-grid">
+          <h3 id="joueur-nom"></h3>
+          <div class="stat"><div class="stat-label">Matchs</div><div id="stat-matchs" class="stat-value">0</div></div>
+          <div class="stat"><div class="stat-label">Victoires</div><div id="stat-victoires" class="stat-value">0</div></div>
+          <div class="stat"><div class="stat-label">Défaites</div><div id="stat-defaites" class="stat-value">0</div></div>
+          <div class="stat"><div class="stat-label">Ratio</div><div id="stat-ratio" class="stat-value">0.00%</div></div>
+          <div class="stat"><div class="stat-label">Elo</div><div id="stat-elo" class="stat-value">1000.00</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="container">© Circet DartMasters · Circet</div></footer>
+
+  <script src="js/storage.js"></script>
+  <script src="js/classement.js"></script>
+  <script src="js/matchs.js"></script>
+  <script src="js/joueurs.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
