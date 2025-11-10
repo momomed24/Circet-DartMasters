@@ -57,6 +57,8 @@
   <div class="app-container">
     <header class="site-header">
       <h1>🎯 Circet DartMasters</h1>
+  <img src="https://www.circet.fr/medias/_processed_/4/2/csm_logo_France_c51ef3a7c2.png" alt="Logo Circet" class="header-logo">
+
       <nav class="main-nav">
         <button class="nav-btn active" onclick="showPage('home')">Accueil</button>
         <button class="nav-btn" onclick="showPage('ranking')">Classement</button>
@@ -100,7 +102,11 @@
           <div class="match-history" id="matchHistory">
             <div class="loading">En attente...</div>
           </div>
-          <button onclick="deleteLastMatch()" class="btn-danger" style="margin-top: 1rem;">Supprimer le dernier match</button>
+          <div style="display:flex; gap:1rem; margin-top:1rem;">
+  <button onclick="deleteLastMatch()" class="btn-danger">Supprimer le dernier match</button>
+  <button onclick="deleteAllMatches()" class="btn-danger" style="background:#b0050a;">🗑️ Supprimer tous les matchs</button>
+</div>
+
         </div>
       </section>
 

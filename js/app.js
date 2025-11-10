@@ -27,36 +27,18 @@ try {
 function showPage(pageName) {
   console.log(`Navigation vers: ${pageName}`);
   
-  // Cacher toutes les pages
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  
-  // Afficher la page demandée
   const targetPage = document.getElementById(`${pageName}-page`);
-  if (targetPage) {
-    targetPage.classList.add('active');
-  }
+  if (targetPage) targetPage.classList.add('active');
   
-  // Mettre à jour les boutons actifs
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-  if (event && event.target) {
-    event.target.classList.add('active');
-  }
+  if (event && event.target) event.target.classList.add('active');
   
-  // Charger les données spécifiques
   switch(pageName) {
-    case 'ranking':
-      renderRanking();
-      break;
-    case 'players':
-      renderPlayers();
-      break;
-    case 'matches':
-      loadPlayersSelect();
-      renderMatchHistory();
-      break;
-    case 'home':
-      updateQuickStats();
-      break;
+    case 'ranking': renderRanking(); break;
+    case 'players': renderPlayers(); break;
+    case 'matches': loadPlayersSelect(); renderMatchHistory(); break;
+    case 'home': updateQuickStats(); break;
   }
 }
 
@@ -70,8 +52,7 @@ async function addPlayer() {
   const snapshot = await db.collection("players").where("name", "==", name).get();
   if (!snapshot.empty) return alert('Ce joueur existe déjà');
   
-  await db.collection("players").add({ name, elo: 1200, wins: 0, losses: 0, matches: 0 });
-  
+  await db.collection("players").add({ name, elo: 1000, wins: 0, losses: 0, matches: 0 });
   document.getElementById('playerName').value = '';
   closeAddPlayerModal();
   await Promise.all([renderPlayers(), renderRanking(), updateQuickStats()]);
@@ -153,11 +134,8 @@ async function confirmAddMatch() {
     winner = player2; loser = player1; winnerId = p2Id; loserId = p1Id;
   } else {
     const [s1, s2] = scoreValue.split('-').map(Number);
-    if (s1 > s2) {
-      winner = player1; loser = player2; winnerId = p1Id; loserId = p2Id;
-    } else {
-      winner = player2; loser = player1; winnerId = p2Id; loserId = p1Id;
-    }
+    if (s1 > s2) { winner = player1; loser = player2; winnerId = p1Id; loserId = p2Id; }
+    else { winner = player2; loser = player1; winnerId = p2Id; loserId = p1Id; }
   }
   
   const { newWinnerElo, newLoserElo } = calculateElo(winner.elo, loser.elo, scoreValue);
@@ -193,11 +171,33 @@ async function deleteLastMatch() {
   }
 }
 
-async function deleteMatch(matchId) {
-  if (!confirm("⚠️ Voulez-vous vraiment supprimer ce match ?\n\nLes stats ELO et les compteurs des joueurs seront recalculés depuis le début.")) {
+// 🆕 SUPPRIMER TOUS LES MATCHS
+async function deleteAllMatches() {
+  if (!confirm("⚠️ Supprimer TOUS les matchs ?\n\nCette action est irréversible et toutes les statistiques seront recalculées.")) {
     return;
   }
 
+  try {
+    const snapshot = await db.collection("matches").get();
+    if (snapshot.empty) {
+      alert("Aucun match à supprimer.");
+      return;
+    }
+
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
+    await recalculateAllStats();
+    alert("✅ Tous les matchs ont été supprimés avec succès !");
+  } catch (error) {
+    console.error("❌ Erreur deleteAllMatches:", error);
+    alert("Erreur lors de la suppression des matchs: " + error.message);
+  }
+}
+
+async function deleteMatch(matchId) {
+  if (!confirm("⚠️ Voulez-vous vraiment supprimer ce match ?\n\nLes stats ELO seront recalculées.")) return;
   try {
     await db.collection("matches").doc(matchId).delete();
     await recalculateAllStats();
@@ -208,113 +208,56 @@ async function deleteMatch(matchId) {
 }
 
 // ============================================================================
-// RECALCULER TOUTES LES STATS (ADMIN)
+// RECALCUL STATS
 // ============================================================================
 async function recalculateAllStats() {
   if (!db) return alert("Firebase non initialisé");
   
-  if (!confirm("🚨 ATTENTION !\n\nCette action va :\n• Réinitialiser tous les ELO à 1200\n• Remettre à zéro toutes les statistiques\n• Recalculer le classement depuis le début\n\nConfirmer ?")) {
-    return;
-  }
+  if (!confirm("🚨 ATTENTION ! Cette action réinitialise tous les ELO et recalcule toutes les stats.")) return;
   
   const button = event?.target;
   const originalText = button?.textContent || '🔄 Recalculer toutes les stats';
   
   try {
-    // Indicateur de chargement
-    if (button) {
-      button.disabled = true;
-      button.textContent = '⏳ Recalcul en cours...';
-    }
+    if (button) { button.disabled = true; button.textContent = '⏳ Recalcul en cours...'; }
     
-    // Récupérer tous les joueurs et les réinitialiser
     const playersSnapshot = await db.collection("players").get();
-    if (playersSnapshot.empty) {
-      alert("Aucun joueur trouvé");
-      return;
-    }
+    if (playersSnapshot.empty) return alert("Aucun joueur trouvé");
     
-    // Suivre les stats en mémoire pendant le recalcul
     const playersData = {};
     const batchReset = db.batch();
     
     playersSnapshot.forEach(doc => {
-      playersData[doc.id] = { elo: 1200, wins: 0, losses: 0, matches: 0 };
-      batchReset.update(db.collection("players").doc(doc.id), {
-        elo: 1200,
-        wins: 0,
-        losses: 0,
-        matches: 0
-      });
+      playersData[doc.id] = { elo: 1000, wins: 0, losses: 0, matches: 0 };
+      batchReset.update(db.collection("players").doc(doc.id), playersData[doc.id]);
     });
-    
     await batchReset.commit();
     
-    // Récupérer tous les matchs par ordre chronologique
-    const matchesSnapshot = await db.collection("matches")
-      .orderBy("timestamp", "asc")
-      .get();
+    const matchesSnapshot = await db.collection("matches").orderBy("timestamp", "asc").get();
+    if (matchesSnapshot.empty) return alert("Aucun match à recalculer");
     
-    if (matchesSnapshot.empty) {
-      alert("Aucun match à recalculer");
-      return;
-    }
-    
-    // Recalculer chaque match un par un
     for (const doc of matchesSnapshot.docs) {
-      const match = doc.data();
+      const m = doc.data();
+      const winner = playersData[m.winnerId];
+      const loser = playersData[m.loserId];
+      if (!winner || !loser) continue;
       
-      const winnerData = playersData[match.winnerId];
-      const loserData = playersData[match.loserId];
-      
-      if (!winnerData || !loserData) {
-        console.warn(`⚠️ Joueurs introuvables pour le match ${doc.id}`);
-        continue;
-      }
-      
-      // Calculer le nouvel ELO
-      const { newWinnerElo, newLoserElo } = calculateElo(
-        winnerData.elo, 
-        loserData.elo, 
-        match.score
-      );
-      
-      // Mettre à jour l'état en mémoire
-      winnerData.elo = newWinnerElo;
-      winnerData.wins++;
-      winnerData.matches++;
-      
-      loserData.elo = newLoserElo;
-      loserData.losses++;
-      loserData.matches++;
+      const { newWinnerElo, newLoserElo } = calculateElo(winner.elo, loser.elo, m.score);
+      winner.elo = newWinnerElo; winner.wins++; winner.matches++;
+      loser.elo = newLoserElo; loser.losses++; loser.matches++;
     }
     
-    // Appliquer toutes les mises à jour finales
     const batchUpdate = db.batch();
-    Object.entries(playersData).forEach(([playerId, data]) => {
-      batchUpdate.update(db.collection("players").doc(playerId), data);
-    });
-    
+    Object.entries(playersData).forEach(([id, data]) => batchUpdate.update(db.collection("players").doc(id), data));
     await batchUpdate.commit();
     
-    // Recharger l'interface
-    await Promise.all([
-      renderRanking(),
-      renderMatchHistory(),
-      updateQuickStats(),
-      renderPlayers()
-    ]);
-    
-    alert("✅ Recalcul terminé avec succès !");
-    
+    await Promise.all([renderRanking(), renderMatchHistory(), updateQuickStats(), renderPlayers()]);
+    alert("✅ Recalcul terminé !");
   } catch (error) {
     console.error("❌ Erreur recalculateAllStats:", error);
     alert("Erreur lors du recalcul: " + error.message);
   } finally {
-    if (button) {
-      button.disabled = false;
-      button.textContent = originalText;
-    }
+    if (button) { button.disabled = false; button.textContent = originalText; }
   }
 }
 
@@ -323,102 +266,89 @@ async function recalculateAllStats() {
 // ============================================================================
 async function renderRanking() {
   const players = await getPlayers();
-  const tableDiv = document.getElementById('rankingTable');
-  if (!tableDiv) return;
-  
-  if (!players.length) {
-    tableDiv.innerHTML = "<p class='no-data'>Aucun joueur dans le classement</p>";
-    return;
-  }
+  const div = document.getElementById('rankingTable');
+  if (!players.length) return div.innerHTML = "<p class='no-data'>Aucun joueur</p>";
   
   players.sort((a,b) => b.elo - a.elo);
-  
-  let html = `<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--accent);color:var(--primary);">
-    <th style="padding:1rem;">Rang</th><th style="padding:1rem;">Joueur</th><th style="padding:1rem;">ELO</th><th style="padding:1rem;">V</th><th style="padding:1rem;">D</th><th style="padding:1rem;">Ratio</th>
-  </tr></thead><tbody>`;
+  let html = `<table style="width:100%;border-collapse:collapse;">
+    <thead><tr style="background:var(--accent);color:var(--primary);">
+      <th style="padding:1rem;">Rang</th><th style="padding:1rem;">Joueur</th><th style="padding:1rem;">ELO</th>
+      <th style="padding:1rem;">V</th><th style="padding:1rem;">D</th><th style="padding:1rem;">Ratio</th>
+    </tr></thead><tbody>`;
   
   players.forEach((p,i) => {
-    const ratio = p.matches ? (p.wins / p.matches * 100).toFixed(1) : '0.0';
+    const ratio = p.matches > 0 ? (p.wins / p.matches).toFixed(2) : "0.00";
     html += `<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:1rem;">${i+1}</td>
       <td style="padding:1rem;"><strong>${p.name}</strong></td>
       <td style="padding:1rem;">${p.elo}</td>
       <td style="padding:1rem;">${p.wins}</td>
       <td style="padding:1rem;">${p.losses}</td>
-      <td style="padding:1rem;">${ratio}%</td>
+      <td style="padding:1rem;">${ratio}</td>
     </tr>`;
   });
+  
   html += "</tbody></table>";
-  tableDiv.innerHTML = html;
+  div.innerHTML = html;
 }
 
 // ============================================================================
-// AUTRES FONCTIONS
+// FONCTIONS UTILITAIRES
 // ============================================================================
 async function loadPlayersSelect() {
   const players = await getPlayers();
-  const p1Select = document.getElementById('player1');
-  const p2Select = document.getElementById('player2');
-  if (!p1Select || !p2Select) return;
+  const p1 = document.getElementById('player1');
+  const p2 = document.getElementById('player2');
+  if (!p1 || !p2) return;
   
-  p1Select.innerHTML = '<option value="">-- Joueur 1 --</option>';
-  p2Select.innerHTML = '<option value="">-- Joueur 2 --</option>';
+  p1.innerHTML = '<option value="">-- Joueur 1 --</option>';
+  p2.innerHTML = '<option value="">-- Joueur 2 --</option>';
   players.forEach(p => {
-    p1Select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-    p2Select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+    p1.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+    p2.innerHTML += `<option value="${p.id}">${p.name}</option>`;
   });
 }
 
 async function renderMatchHistory() {
-  try {
-    const snapshot = await db.collection("matches").orderBy("timestamp", "desc").limit(20).get();
-    const container = document.getElementById('matchHistory');
-    if (!container) return;
-    
-    if (snapshot.empty) {
-      container.innerHTML = "<p class='no-data'>Aucun match</p>";
-      return;
-    }
-    
-    let html = '';
-    snapshot.docs.forEach(doc => {
-      const m = doc.data();
-      const date = new Date(m.timestamp).toLocaleDateString('fr-FR');
-      html += `<div class="match-item">
-        <div class="match-info">
-          <strong>${m.winner}</strong> vs ${m.loser} 
-          <span style="color:var(--accent); margin-left: 1rem;">${m.score}</span>
-          <div style="font-size:0.85rem;color:var(--text-muted)">${date}</div>
-        </div>
-        <div class="match-actions">
-          <button onclick="deleteMatch('${doc.id}')" class="btn-danger delete-match-btn" title="Supprimer ce match">🗑️ Supprimer</button>
-        </div>
-      </div>`;
-    });
-    container.innerHTML = html;
-  } catch (error) {
-    console.error("❌ Erreur renderMatchHistory:", error);
-  }
+  const snapshot = await db.collection("matches").orderBy("timestamp", "desc").limit(20).get();
+  const c = document.getElementById('matchHistory');
+  if (snapshot.empty) return c.innerHTML = "<p class='no-data'>Aucun match</p>";
+  
+  let html = '';
+  snapshot.docs.forEach(doc => {
+    const m = doc.data();
+    const date = new Date(m.timestamp).toLocaleDateString('fr-FR');
+    html += `<div class="match-item">
+      <div class="match-info">
+        <strong>${m.winner}</strong> vs ${m.loser}
+        <span style="color:var(--accent); margin-left:1rem;">${m.score}</span>
+        <div style="font-size:0.85rem;color:var(--text-muted)">${date}</div>
+      </div>
+      <div class="match-actions">
+        <button onclick="deleteMatch('${doc.id}')" class="btn-danger delete-match-btn">🗑️ Supprimer</button>
+      </div>
+    </div>`;
+  });
+  c.innerHTML = html;
 }
 
 async function updateQuickStats() {
   const players = await getPlayers();
   const matches = await db.collection("matches").get();
-  
   document.getElementById('quickStats').innerHTML = `
     <div class="stat-item"><div>Joueurs</div><strong>${players.length}</strong></div>
     <div class="stat-item"><div>Matchs</div><strong>${matches.size}</strong></div>
-    <div class="stat-item"><div>Moyenne ELO</div><strong>${players.length ? Math.round(players.reduce((a,p) => a + p.elo, 0) / players.length) : 0}</strong></div>
+    <div class="stat-item"><div>Moyenne ELO</div><strong>${players.length ? Math.round(players.reduce((a,p)=>a+p.elo,0)/players.length) : 0}</strong></div>
   `;
 }
 
-function calculateElo(winnerElo, loserElo, score) {
+function calculateElo(wElo, lElo, score) {
   const K = 32;
-  const multiplier = score === '2-0' ? 1.2 : 1.0;
-  const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
+  const mult = score === '2-0' ? 1.2 : 1.0;
+  const exp = 1 / (1 + Math.pow(10, (lElo - wElo)/400));
   return {
-    newWinnerElo: Math.round(winnerElo + K * multiplier * (1 - expectedWinner)),
-    newLoserElo: Math.round(loserElo + K * multiplier * (0 - expectedWinner))
+    newWinnerElo: Math.round(wElo + K * mult * (1 - exp)),
+    newLoserElo: Math.round(lElo + K * mult * (0 - exp))
   };
 }
 
@@ -426,19 +356,12 @@ function calculateElo(winnerElo, loserElo, score) {
 // MODALS
 // ============================================================================
 function openAddPlayerModal() {
-  const modal = document.getElementById('addPlayerModal');
-  if (modal) {
-    modal.style.display = 'block';
-    const input = document.getElementById('playerName');
-    if (input) input.focus();
-  }
+  document.getElementById('addPlayerModal').style.display = 'block';
+  document.getElementById('playerName').focus();
 }
-
 function closeAddPlayerModal() {
-  const modal = document.getElementById('addPlayerModal');
-  if (modal) modal.style.display = 'none';
-  const input = document.getElementById('playerName');
-  if (input) input.value = '';
+  document.getElementById('addPlayerModal').style.display = 'none';
+  document.getElementById('playerName').value = '';
 }
 
 // ============================================================================
@@ -446,10 +369,5 @@ function closeAddPlayerModal() {
 // ============================================================================
 window.addEventListener('DOMContentLoaded', () => {
   console.log("🚀 Application démarrée");
-  setTimeout(async () => {
-    await Promise.all([
-      updateQuickStats(),
-      loadPlayersSelect()
-    ]);
-  }, 300);
+  setTimeout(() => { updateQuickStats(); loadPlayersSelect(); }, 300);
 });
