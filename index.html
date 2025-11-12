@@ -51,7 +51,25 @@
     .delete-match-btn { background: var(--danger); color: white; padding: 0.4rem 0.8rem; font-size: 0.9rem; border-radius: 6px; }
     .delete-match-btn:hover { background: #b0050a; transform: none; }
     .site-footer { background: var(--primary); text-align: center; padding: 1rem; color: var(--text-muted); border-top: 1px solid var(--border); }
-    @media (max-width: 768px) { .main-content { padding: 1.5rem; } .site-header { padding: 1.5rem; flex-direction:column; align-items:flex-start } .site-header h1 { font-size: 1.8rem; margin-bottom:0.5rem } .match-form { flex-direction: column; } .quick-stats { flex-direction: column; gap: 1rem; } .modal-content { margin-top: 20%; } }
+    
+    /* ===== NOUVEAUX STYLES POUR L'HISTORIQUE ===== */
+    .history-controls { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; align-items: center; }
+    .history-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    .history-table th, .history-table td { padding: 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .history-table th { background: var(--primary); color: var(--accent); font-family: 'Montserrat', sans-serif; }
+    .history-table tr:hover { background: var(--bg-light); }
+    .rank-change { font-size: 0.9rem; margin-left: 0.5rem; font-weight: bold; }
+    .rank-up { color: #2ecc71; }
+    .rank-down { color: var(--danger); }
+    .rank-same { color: var(--text-muted); }
+    .rank-new { color: var(--accent); font-style: italic; }
+    .player-history-match { background: var(--primary); padding: 0.8rem; margin-bottom: 0.5rem; border-radius: 6px; border-left: 3px solid var(--accent); }
+    .player-history-match.won { border-left-color: var(--success); }
+    .player-history-match.lost { border-left-color: var(--danger); }
+    .elo-chart { height: 200px; margin: 1rem 0; background: var(--primary); border-radius: 8px; padding: 1rem; position: relative; }
+    .chart-bar { position: absolute; bottom: 1rem; background: var(--accent); width: 20px; transition: all 0.3s ease; }
+    
+    @media (max-width: 768px) { .main-content { padding: 1.5rem; } .site-header { padding: 1.5rem; flex-direction:column; align-items:flex-start } .site-header h1 { font-size: 1.8rem; margin-bottom:0.5rem } .match-form { flex-direction: column; } .quick-stats { flex-direction: column; gap: 1rem; } .modal-content { margin-top: 20%; } .history-controls { flex-direction: column; } }
   </style>
 </head>
 <body>
@@ -64,6 +82,7 @@
           <button class="nav-btn" onclick="showPage('ranking')">Classement</button>
           <button class="nav-btn" onclick="showPage('matches')">Matchs</button>
           <button class="nav-btn" onclick="showPage('players')">Joueurs</button>
+          <button class="nav-btn" onclick="showPage('history'); loadHistoryPage();">📈 Historique</button>
         </nav>
       </div>
 
@@ -124,6 +143,24 @@
           </div>
         </div>
       </section>
+
+      <!-- ===== NOUVELLE PAGE HISTORIQUE ===== -->
+      <section id="history-page" class="page">
+        <div class="card">
+          <h2>📈 Historique des Classements</h2>
+          <div class="history-controls">
+            <select id="historyDateSelect" style="flex: 1; min-width: 200px;">
+              <option value="">-- Sélectionner une date --</option>
+            </select>
+            <button onclick="saveCurrentRanking()" class="btn-success" style="white-space: nowrap;">
+              💾 Sauvegarder le classement actuel
+            </button>
+          </div>
+          <div id="historyRankingTable">
+            <div class="no-data">Sélectionnez une date pour voir le classement</div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="site-footer">
@@ -156,12 +193,12 @@
     </div>
   </div>
 
-  <!-- Player stats modal -->
+  <!-- Player stats modal AMÉLIORÉ -->
   <div id="playerStatsModal" class="modal" aria-hidden="true">
     <div class="modal-overlay" onclick="closePlayerStats()"></div>
-    <div class="modal-content" id="playerStatsContent">
-      <!-- Contenu rempli dynamiquement -->
+    <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
       <div id="playerStatsInner"></div>
+      <div id="playerHistoryMatches" style="margin-top: 1.5rem;"></div>
       <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
         <button onclick="closePlayerStats()" class="btn-secondary">Fermer</button>
       </div>
