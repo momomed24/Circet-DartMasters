@@ -21,6 +21,9 @@ try {
   alert("Impossible de se connecter à Firebase. Vérifiez la configuration.");
 }
 
+// Global cache des joueurs pour la modale
+let allPlayersCache = [];
+
 // ============================================================================
 // NAVIGATION
 // ============================================================================
@@ -67,7 +70,10 @@ async function deletePlayer(playerId, playerName) {
 async function getPlayers() {
   if (!db) return [];
   const snapshot = await db.collection("players").orderBy("name").get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // met à jour le cache global
+  allPlayersCache = players;
+  return players;
 }
 
 async function renderPlayers() {
@@ -80,16 +86,23 @@ async function renderPlayers() {
     return;
   }
   
-  grid.innerHTML = '';
+  // Construire le HTML pour chaque joueur : nom + bouton Voir stats + supprimer
+  let html = '';
   players.forEach(p => {
-    const card = document.createElement('div');
-    card.className = 'player-card';
-    card.innerHTML = `
-      <div><strong>${p.name}</strong><div style="font-size:0.9rem;color:var(--text-muted)">ELO: ${p.elo}</div></div>
-      <button onclick="deletePlayer('${p.id}', '${p.name}')" class="btn-danger">Supprimer</button>
+    html += `
+      <div class="player-card">
+        <div>
+          <strong>${p.name}</strong>
+          <div style="font-size:0.9rem;color:var(--text-muted)">ELO: ${p.elo}</div>
+        </div>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <button onclick="openPlayerStats('${p.id}')" class="btn-secondary">📊 Voir stats</button>
+          <button onclick="deletePlayer('${p.id}', '${p.name}')" class="btn-danger">Supprimer</button>
+        </div>
+      </div>
     `;
-    grid.appendChild(card);
   });
+  grid.innerHTML = html;
 }
 
 // ============================================================================
@@ -156,7 +169,7 @@ async function confirmAddMatch() {
   
   document.getElementById('matchScore').value = '';
   closeAddMatchModal();
-  await Promise.all([renderRanking(), renderMatchHistory(), updateQuickStats()]);
+  await Promise.all([renderRanking(), renderMatchHistory(), updateQuickStats(), renderPlayers()]);
 }
 
 async function deleteLastMatch() {
@@ -266,30 +279,60 @@ async function recalculateAllStats() {
 // ============================================================================
 async function renderRanking() {
   const players = await getPlayers();
-  const div = document.getElementById('rankingTable');
-  if (!players.length) return div.innerHTML = "<p class='no-data'>Aucun joueur</p>";
-  
-  players.sort((a,b) => b.elo - a.elo);
-  let html = `<table style="width:100%;border-collapse:collapse;">
-    <thead><tr style="background:var(--accent);color:var(--primary);">
-      <th style="padding:1rem;">Rang</th><th style="padding:1rem;">Joueur</th><th style="padding:1rem;">ELO</th>
-      <th style="padding:1rem;">V</th><th style="padding:1rem;">D</th><th style="padding:1rem;">Ratio</th>
-    </tr></thead><tbody>`;
-  
-  players.forEach((p,i) => {
+  const rankingDiv = document.getElementById('rankingTable');
+
+  if (!players.length) {
+    rankingDiv.innerHTML = '<p class="no-data">Aucun joueur enregistré</p>';
+    return;
+  }
+
+  // Tri des joueurs par ELO
+  players.sort((a, b) => b.elo - a.elo);
+
+  let html = `
+    <table style="width:100%; border-collapse:collapse; text-align:center;">
+      <thead>
+        <tr style="background: var(--primary); color: var(--accent);">
+          <th style="padding:1rem;">Rang</th>
+          <th style="padding:1rem;">Joueur</th>
+          <th style="padding:1rem;">ELO</th>
+          <th style="padding:1rem;">Victoires</th>
+          <th style="padding:1rem;">Défaites</th>
+          <th style="padding:1rem;">Matchs joués</th>
+          <th style="padding:1rem;">Ratio</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  players.forEach((p, i) => {
     const ratio = p.matches > 0 ? (p.wins / p.matches).toFixed(2) : "0.00";
-    html += `<tr style="border-bottom:1px solid var(--border);">
-      <td style="padding:1rem;">${i+1}</td>
-      <td style="padding:1rem;"><strong>${p.name}</strong></td>
-      <td style="padding:1rem;">${p.elo}</td>
-      <td style="padding:1rem;">${p.wins}</td>
-      <td style="padding:1rem;">${p.losses}</td>
-      <td style="padding:1rem;">${ratio}</td>
-    </tr>`;
+    let medal = "";
+
+    // 🥇🥈🥉 Ajout des médailles selon le rang
+    if (i === 0) medal = " 🥇";
+    else if (i === 1) medal = " 🥈";
+    else if (i === 2) medal = " 🥉";
+
+    html += `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:1rem;">${i + 1}</td>
+        <td style="padding:1rem; text-align:left;">${p.name}${medal}</td>
+        <td style="padding:1rem;">${p.elo}</td>
+        <td style="padding:1rem;">${p.wins}</td>
+        <td style="padding:1rem;">${p.losses}</td>
+        <td style="padding:1rem;">${p.matches}</td>
+        <td style="padding:1rem;">${ratio}</td>
+      </tr>
+    `;
   });
-  
-  html += "</tbody></table>";
-  div.innerHTML = html;
+
+  html += `
+      </tbody>
+    </table>
+  `;
+
+  rankingDiv.innerHTML = html;
 }
 
 // ============================================================================
@@ -353,15 +396,53 @@ function calculateElo(wElo, lElo, score) {
 }
 
 // ============================================================================
-// MODALS
+// PLAYER STATS MODAL
+// ============================================================================
+function openPlayerStats(playerId) {
+  // chercher dans le cache global (rempli par getPlayers)
+  const player = allPlayersCache.find(p => p.id === playerId);
+  if (!player) {
+    alert("Joueur introuvable");
+    return;
+  }
+
+  const ratio = player.matches > 0 ? (player.wins / player.matches).toFixed(2) : "0.00";
+
+  const content = `
+    <h3 style="margin-bottom:0.5rem;">${player.name}</h3>
+    <div style="font-size:0.95rem;color:var(--text-muted);margin-bottom:0.75rem;">Informations du joueur</div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">
+      <div><strong>ELO</strong></div><div>${player.elo}</div>
+      <div><strong>Victoires</strong></div><div>${player.wins}</div>
+      <div><strong>Défaites</strong></div><div>${player.losses}</div>
+      <div><strong>Matchs joués</strong></div><div>${player.matches}</div>
+      <div><strong>Ratio</strong></div><div>${ratio}</div>
+    </div>
+  `;
+
+  const modal = document.getElementById('playerStatsModal');
+  const inner = document.getElementById('playerStatsInner');
+  if (inner) inner.innerHTML = content;
+  if (modal) modal.style.display = 'block';
+}
+
+function closePlayerStats() {
+  const modal = document.getElementById('playerStatsModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ============================================================================
+// MODALS - ADD PLAYER
 // ============================================================================
 function openAddPlayerModal() {
   document.getElementById('addPlayerModal').style.display = 'block';
-  document.getElementById('playerName').focus();
+  const input = document.getElementById('playerName');
+  if (input) input.focus();
 }
 function closeAddPlayerModal() {
   document.getElementById('addPlayerModal').style.display = 'none';
-  document.getElementById('playerName').value = '';
+  const input = document.getElementById('playerName');
+  if (input) input.value = '';
 }
 
 // ============================================================================
@@ -369,5 +450,5 @@ function closeAddPlayerModal() {
 // ============================================================================
 window.addEventListener('DOMContentLoaded', () => {
   console.log("🚀 Application démarrée");
-  setTimeout(() => { updateQuickStats(); loadPlayersSelect(); }, 300);
+  setTimeout(() => { updateQuickStats(); loadPlayersSelect(); renderPlayers(); }, 300);
 });

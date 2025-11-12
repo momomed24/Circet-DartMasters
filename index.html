@@ -16,9 +16,10 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Roboto', sans-serif; background: var(--secondary); color: var(--text); line-height: 1.6; }
     .app-container { min-height: 100vh; display: flex; flex-direction: column; }
-    .site-header { background: var(--primary); padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 100; }
-    .site-header h1 { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 2rem; color: var(--accent); margin-bottom: 1rem; }
-    .main-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .site-header { background: var(--primary); padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: sticky; top: 0; z-index: 100; display:flex; align-items:center; justify-content:space-between; }
+    .site-header h1 { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 2rem; color: var(--accent); margin-bottom: 0; }
+    .header-logo { height:40px; width:auto; }
+    .main-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-left: 2rem; }
     .nav-btn { background: transparent; border: 2px solid var(--accent); color: var(--accent); padding: 0.6rem 1.5rem; border-radius: 25px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; }
     .nav-btn:hover, .nav-btn.active { background: var(--accent); color: var(--primary); transform: translateY(-2px); }
     .main-content { flex: 1; padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; }
@@ -39,7 +40,7 @@
     .btn-success { background: var(--success); } .btn-danger { background: var(--danger); } .btn-secondary { background: var(--text-muted); color: var(--primary); }
     .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1000; }
     .modal-overlay { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
-    .modal-content { position: relative; background: var(--card-bg); margin: 10% auto; padding: 2rem; width: 90%; max-width: 500px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .modal-content { position: relative; background: var(--card-bg); margin: 8% auto; padding: 1.5rem; width: 90%; max-width: 420px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .loading { text-align: center; padding: 2rem; color: var(--text-muted); font-style: italic; }
     .no-data { text-align: center; padding: 2rem; color: var(--text-muted); font-style: italic; }
     .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem; }
@@ -50,21 +51,23 @@
     .delete-match-btn { background: var(--danger); color: white; padding: 0.4rem 0.8rem; font-size: 0.9rem; border-radius: 6px; }
     .delete-match-btn:hover { background: #b0050a; transform: none; }
     .site-footer { background: var(--primary); text-align: center; padding: 1rem; color: var(--text-muted); border-top: 1px solid var(--border); }
-    @media (max-width: 768px) { .main-content { padding: 1.5rem; } .site-header { padding: 1.5rem; } .site-header h1 { font-size: 1.8rem; } .match-form { flex-direction: column; } .quick-stats { flex-direction: column; gap: 1rem; } }
+    @media (max-width: 768px) { .main-content { padding: 1.5rem; } .site-header { padding: 1.5rem; flex-direction:column; align-items:flex-start } .site-header h1 { font-size: 1.8rem; margin-bottom:0.5rem } .match-form { flex-direction: column; } .quick-stats { flex-direction: column; gap: 1rem; } .modal-content { margin-top: 20%; } }
   </style>
 </head>
 <body>
   <div class="app-container">
     <header class="site-header">
-      <h1>🎯 Circet DartMasters</h1>
-  <img src="https://www.circet.fr/medias/_processed_/4/2/csm_logo_France_c51ef3a7c2.png" alt="Logo Circet" class="header-logo">
+      <div style="display:flex; align-items:center; gap:1rem;">
+        <h1>🎯 Circet DartMasters</h1>
+        <nav class="main-nav">
+          <button class="nav-btn active" onclick="showPage('home')">Accueil</button>
+          <button class="nav-btn" onclick="showPage('ranking')">Classement</button>
+          <button class="nav-btn" onclick="showPage('matches')">Matchs</button>
+          <button class="nav-btn" onclick="showPage('players')">Joueurs</button>
+        </nav>
+      </div>
 
-      <nav class="main-nav">
-        <button class="nav-btn active" onclick="showPage('home')">Accueil</button>
-        <button class="nav-btn" onclick="showPage('ranking')">Classement</button>
-        <button class="nav-btn" onclick="showPage('matches')">Matchs</button>
-        <button class="nav-btn" onclick="showPage('players')">Joueurs</button>
-      </nav>
+      <img src="https://www.circet.fr/medias/_processed_/4/2/csm_logo_France_c51ef3a7c2.png" alt="Logo Circet" class="header-logo">
     </header>
 
     <main class="main-content">
@@ -103,10 +106,9 @@
             <div class="loading">En attente...</div>
           </div>
           <div style="display:flex; gap:1rem; margin-top:1rem;">
-  <button onclick="deleteLastMatch()" class="btn-danger">Supprimer le dernier match</button>
-  <button onclick="deleteAllMatches()" class="btn-danger" style="background:#b0050a;">🗑️ Supprimer tous les matchs</button>
-</div>
-
+            <button onclick="deleteLastMatch()" class="btn-danger">Supprimer le dernier match</button>
+            <button onclick="deleteAllMatches()" class="btn-danger" style="background:#b0050a;">🗑️ Supprimer tous les matchs</button>
+          </div>
         </div>
       </section>
 
@@ -150,6 +152,18 @@
       <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
         <button onclick="confirmAddMatch()" class="btn-primary">Confirmer</button>
         <button onclick="closeAddMatchModal()" class="btn-secondary">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Player stats modal -->
+  <div id="playerStatsModal" class="modal" aria-hidden="true">
+    <div class="modal-overlay" onclick="closePlayerStats()"></div>
+    <div class="modal-content" id="playerStatsContent">
+      <!-- Contenu rempli dynamiquement -->
+      <div id="playerStatsInner"></div>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
+        <button onclick="closePlayerStats()" class="btn-secondary">Fermer</button>
       </div>
     </div>
   </div>
