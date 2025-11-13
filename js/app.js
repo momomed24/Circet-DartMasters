@@ -698,6 +698,91 @@ function closeAddPlayerModal() {
   if (input) input.value = '';
 }
 
+// ==========================================================
+// FONCTION AJOUTÉE POUR OUVRIR LES STATS JOUEUR
+// ==========================================================
+async function openPlayerStats(playerId) {
+  if (!db || !playerId) return;
+
+  const modal = document.getElementById('playerStatsModal');
+  const inner = document.getElementById('playerStatsInner');
+  const matchesDiv = document.getElementById('playerHistoryMatches');
+  
+  // Afficher la modale et l'état de chargement
+  modal.style.display = 'block';
+  inner.innerHTML = '<div class="loading">Chargement des stats...</div>';
+  matchesDiv.innerHTML = '';
+
+  try {
+    // 1. Récupérer les données du joueur
+    const playerDoc = await db.collection("players").doc(playerId).get();
+    if (!playerDoc.exists) {
+      inner.innerHTML = '<div class="no-data">Joueur introuvable</div>';
+      return;
+    }
+    const player = playerDoc.data();
+    const ratio = player.matches > 0 ? ((player.wins / player.matches) * 100).toFixed(0) : 0;
+
+    // 2. Afficher les statistiques principales
+    inner.innerHTML = `
+      <h3 style="color: var(--accent); margin-bottom: 1rem;">Statistiques de ${player.name}</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="stat-item"><div>ELO</div><strong>${Math.round(player.elo)}</strong></div>
+        <div class="stat-item"><div>Matchs</div><strong>${player.matches}</strong></div>
+        <div class="stat-item"><div>Victoires</div><strong>${player.wins}</strong></div>
+        <div class="stat-item"><div>Défaites</div><strong>${player.losses}</strong></div>
+        <div class="stat-item" style="grid-column: 1 / -1;">
+          <div>Ratio V/D</div>
+          <strong>${ratio}%</strong>
+        </div>
+      </div>
+    `;
+
+    // 3. Récupérer les 10 derniers matchs du joueur
+    matchesDiv.innerHTML = '<div class="loading">Chargement des matchs...</div>';
+
+    // Il faut faire deux requêtes : une pour les victoires, une pour les défaites
+    const wonQuery = db.collection("matches").where("winnerId", "==", playerId);
+    const lostQuery = db.collection("matches").where("loserId", "==", playerId);
+
+    const [wonSnapshot, lostSnapshot] = await Promise.all([wonQuery.get(), lostQuery.get()]);
+
+    const allMatches = [];
+    wonSnapshot.forEach(doc => allMatches.push({ ...doc.data(), id: doc.id, type: 'win' }));
+    lostSnapshot.forEach(doc => allMatches.push({ ...doc.data(), id: doc.id, type: 'loss' }));
+
+    // Trier tous les matchs par date (du plus récent au plus ancien)
+    allMatches.sort((a, b) => b.timestamp - a.timestamp);
+    const last10Matches = allMatches.slice(0, 10);
+
+    if (last10Matches.length === 0) {
+      matchesDiv.innerHTML = '<p class="no-data" style="margin-top: 1rem;">Aucun match récent</p>';
+      return;
+    }
+
+    // 4. Afficher les matchs
+    let matchesHtml = '<h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">10 Derniers Matchs :</h4>';
+    last10Matches.forEach(m => {
+      const isWin = m.type === 'win';
+      const opponent = isWin ? m.loser : m.winner;
+      const matchClass = isWin ? 'won' : 'lost'; // Assure-toi d'avoir ces classes CSS
+      const date = new Date(m.timestamp).toLocaleDateString('fr-FR');
+      
+      matchesHtml += `
+        <div class="player-history-match ${matchClass}">
+          <div><strong>${isWin ? 'Victoire' : 'Défaite'}</strong> vs ${opponent} (${m.score})</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">${date}</div>
+        </div>
+      `;
+    });
+    matchesDiv.innerHTML = matchesHtml;
+
+  } catch (error) {
+    console.error("Erreur openPlayerStats:", error);
+    inner.innerHTML = `<div class="no-data">Erreur: ${error.message}</div>`;
+  }
+}
+
 function closePlayerStats() {
   document.getElementById('playerStatsModal').style.display = 'none';
 }
