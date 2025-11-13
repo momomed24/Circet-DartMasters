@@ -146,16 +146,17 @@
 
       <!-- ===== NOUVELLE PAGE HISTORIQUE ===== -->
       <section id="history-page" class="page">
-        <div class="card">
-          <h2>📈 Historique des Classements</h2>
-          <div class="history-controls">
-            <select id="historyDateSelect" style="flex: 1; min-width: 200px;">
-              <option value="">-- Sélectionner une date --</option>
-            </select>
-            <button onclick="saveCurrentRanking()" class="btn-success" style="white-space: nowrap;">
-              💾 Sauvegarder le classement actuel
-            </button>
-          </div>
+       <div class="history-controls">
+  <select id="historyDateSelect" style="flex: 1; min-width: 200px;">
+    <option value="">-- Sélectionner une date --</option>
+  </select>
+  <button onclick="saveCurrentRanking()" class="btn-success" style="white-space: nowrap;">
+    💾 Sauvegarder le classement actuel
+  </button>
+  <button onclick="deleteSelectedHistory()" class="btn-danger">
+    🗑️ Supprimer l’historique sélectionné
+  </button>
+</div>
           <div id="historyRankingTable">
             <div class="no-data">Sélectionnez une date pour voir le classement</div>
           </div>
