@@ -6,7 +6,6 @@
   <title>Circet DartMasters</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
   
-  <!-- CSS INTÉGRÉ -->
   <style>
     :root {
       --primary: #1a2a3a; --secondary: #0d1b2a; --accent: #ff6b35; --accent-hover: #ff8555;
@@ -144,7 +143,6 @@
         </div>
       </section>
 
-      <!-- ===== NOUVELLE PAGE HISTORIQUE ===== -->
       <section id="history-page" class="page">
        <div class="history-controls">
   <select id="historyDateSelect" style="flex: 1; min-width: 200px;">
@@ -169,7 +167,6 @@
     </footer>
   </div>
 
-  <!-- MODALS -->
   <div id="addPlayerModal" class="modal">
     <div class="modal-overlay" onclick="closeAddPlayerModal()"></div>
     <div class="modal-content">
@@ -194,7 +191,6 @@
     </div>
   </div>
 
-  <!-- Player stats modal AMÉLIORÉ -->
   <div id="playerStatsModal" class="modal" aria-hidden="true">
     <div class="modal-overlay" onclick="closePlayerStats()"></div>
     <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
@@ -206,11 +202,9 @@
     </div>
   </div>
 
-  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   
-  <!-- APP JS -->
   <script src="js/app.js"></script>
 </body>
 </html>
